@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>LightSim</title>
+
+<link rel='stylesheet' href='libs/jquery-ui.css' id='theme_css'/>
+<link rel='stylesheet' href='libs/mycss.css' id='theme_css'/>
+  
+<script src='libs/jquery-3.2.1.js'></script>
+<script src='libs/jquery-ui.js'></script>
+<script src="lightsim.js"></script>
+</head>
+ 
+<body>
+<div id="canv1" onclick="showInfo(event)">
+	<canvas id="worldCanvas" width="750" height="750"></canvas>
+</div>
+<div id="canv2" onclick="showInfo(event)">
+	<canvas id="historyCanvas" width="750" height="750"></canvas>
+</div>
+<div id="canv3" onclick="showInfo(event)">
+	<canvas id="staticCanvas" width="750" height="750"></canvas>
+</div>
+<div id="infoText">
+	
+</div>
+</body>
