@@ -44,7 +44,7 @@ function start() {
   //while(true){
   	//drawAll();
 	//}
-  loopTimer = setInterval(drawAll, 10);
+  //loopTimer = setInterval(drawAll, 10);
   
 }
 
@@ -198,3 +198,161 @@ function getColorPower(power){
 
 	return fillStyle;
 }
+
+var Light = function(x, y, z, power, dynamic, startX, startY, startZ, endX, endY, endZ, speed, delayX, delayY, delayZ)
+{
+  this.x       = x       || 1.0;
+  this.y       = y       || 1.0;
+  this.z       = z       || 0.5;
+  this.power   = power   || 600;
+  this.dynamic = dynamic || false;
+  this.startX  = startX  || 0.0;
+  this.startY  = startY  || 0.0;
+  this.startZ  = startZ  || 0.0;
+  this.endX    = endX    || 0.0;
+  this.endY    = endY    || 0.0;
+  this.endZ    = endZ    || 0.0;
+  this.speed   = speed   || 0.0;
+  this.delayX  = delayX  || 0.0;
+  this.delayY  = delayY  || 0.0;
+  this.delayZ  = delayZ  || 0.0;
+}
+
+var Sim = function(id, panelID){
+	this.id = id || 0;
+	this.room = new Room(3, 3, 2);
+	this.room.lights.push(new Light(1.5, 1.5, 0.5, 600));
+	this.panel = new Panel(panelID);
+}
+
+var View = function(w, h, viewType, visible, id, panelID, txt){
+	this.width = w || 750;
+	this.height = h || 750;
+	this.viewType = viewType || 'live';
+	this.visible = visible || true;
+	this.txt = txt || '';
+	this.id = id || 'none';
+	this.panelID = panelID || 'panel1'
+	this.init();
+}
+
+View.prototype = {
+	draw: function(){
+		if(this.viewType == 'live'){
+			var canvas = document.getElementById(this.id);
+  		var ctx = canvas.getContext("2d");
+  		ctx.fillStyle = 'rgb(128,128,128)';
+  		ctx.fillRect(100, 100, 10, 10);
+		}
+		if(this.viewType == 'history'){
+			var canvas = document.getElementById(this.id);
+  		var ctx = canvas.getContext("2d");
+  		ctx.fillStyle = 'rgb(128,128,128)';
+  		ctx.fillRect(100, 100, 10, 10);
+		}
+		if(this.viewType == 'info'){
+
+		}
+	},
+	init: function(){
+		if(this.viewType == 'live'){
+			var canvasHtml = '<canvas id="'+this.id+'" width="750" height="750"></canvas>';
+			$('#'+this.panelID).append(canvasHtml);
+		}
+		if(this.viewType == 'history'){
+			var canvasHtml = '<canvas id="'+this.id+'" width="750" height="750"></canvas>';
+			$('#'+this.panelID).append(canvasHtml);
+		}
+		if(this.viewType == 'info'){
+			var infoHtml = '<div id="'+this.id+'">'+this.txt+'</div>';
+			$('#'+this.panelID).append(infoHtml);
+		}
+	}
+}
+
+var Panel = function(panelID){
+	this.panelID = panelID || 'panel1';
+	this.init();
+	this.views = [];
+	var view = new View(750, 750, 'live', true, 'liveCanvas', this.panelID);
+	this.views.push(view);
+	view = new View(750, 750, 'history', true, 'historyCanvas', this.panelID);
+	this.views.push(view);
+	view = new View(750, 750, 'info', true, 'infoWindow', this.panelID, 'Info text');
+	this.views.push(view);
+
+}
+
+Panel.prototype = {
+	init: function(){
+		var panelHtml = '<div id="'+this.panelID+'"></div>';
+		$('#main').append(panelHtml);
+	}
+}
+
+Light.prototype = {
+  calcWperm: function(x,y,z){
+    var vx = this.x - x;
+    var vy = this.y - y;
+    var vz = this.z - z;
+    var distance = Math.sqrt((vx*vx)+(vy*vy)+(vz*vz));
+    var area = 4 * Math.PI * distance * distance;
+    var wperm = this.power / area;
+    return wperm;
+  }
+}
+
+var Room = function(maxX, maxY, maxZ)
+{
+  this.maxX = maxX || 3;
+  this.maxY = maxY || 3;
+  this.maxZ = maxZ || 2;
+  this.powerGrid = new Grid(75, 75, 0.01, this.maxX);
+  this.lights = [];
+}
+
+Room.prototype = {
+	calcPowerGrid: function(){
+		for(var x = 0; x < this.powerGrid.x; x++){
+			for(var y = 0; y < this.powerGrid.y; y++){
+				var roomX = x * this.powerGrid.gsize; 
+				var roomY = y * this.powerGrid.gsize;
+				var wperm = this.getWperm(roomX, roomY, this.powerGrid.z);
+				this.powerGrid.gridHistory[this.powerGrid.historyIndex][x][y] = wperm;
+			}
+		}
+		this.powerGrid.historyIndex++;
+		if(this.powerGrid.historyIndex >= 1000){
+			this.powerGrid.historyIndex = 0;
+		}
+	},
+	getWperm: function(roomX, roomY, roomZ){
+		var wperm = 0;
+		for(var i = 0;i<this.lights.length;i++){
+			wperm += this.lights[i].calcWperm(roomX, roomY, roomZ);
+		}
+		return wperm;
+	}
+}
+
+var Grid = function(x, y, z, maxX)
+{
+  this.x = x || 75;
+  this.y = y || 75;
+  this.z = z || 0.01;
+  this.gsize = maxX / this.x;
+  this.historyIndex = 0;
+  this.gridHistory = [];
+  for(var h=0; h<1000; h++){
+	  var cells = [];
+	  for(var xi=0;xi < this.x; xi++){
+	  	var yRow = [];
+	  	for(var yi=0;yi < this.y; yi++){
+	  		yRow.push(0);
+	  	}
+	  	cells.push(yRow);
+	  }
+	  this.gridHistory.push(cells);
+	}
+}
+
