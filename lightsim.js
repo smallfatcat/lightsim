@@ -4,170 +4,82 @@ Number.prototype.map = function (in_min, in_max, out_min, out_max) {
   return (this - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-var pixelsPerM = 250;
-var wobbleY = 0;
-var wobbleDirection = 'down';
-var lightXMin = 125;
-var lightXMax = 625;
-var lightX = lightXMin;
-var lightStaticX1 = 200;
-var lightStaticX2 = 550;
-var lightStaticX3 = 625;
-var lightStaticY = 200;
-var dynamicZ = 5;
-var staticZ = 40;
-var lightY = 200;
-var direction = 'right';
-var speedX = 2;
-var speedY = 8;
-var lightPower = 1000.0;
-var lightPowerStatic = 600.0;
-var frameCount = 0;
-var delayTime = 5;
-var delayCount = 0;
-var delayTimeY = 5;
-var delayCountY = 0;
-var historyArray = [];
-for (var i=0;i<75;i++){
-	var historyArrayY = [];
-	for(var j=0;j<75;j++){
-		var historyArrayT = [];
-		for(var k=0;k<1000;k++){
-			historyArrayT.push(0);
-		}
-		historyArrayY.push(historyArrayT);
-	}
-	historyArray.push(historyArrayY);
-}
+
+
+var mainSim1 = 0;
+var mainSim2 = 0;
+var mainSim3 = 0;
+var mainSim4 = 0;
+var mainSim5 = 0;
+
+var frames = 0;
 
 function start() {
   //while(true){
   	//drawAll();
 	//}
   //loopTimer = setInterval(drawAll, 10);
+
+  
+  mainSim1 = new Sim(0,'mainroom1');
+  mainSim1.room.lights.push(new Light(0.75, 1.0, 0.1, 600, true, 0.75, 1.0, 0.1, 2.25, 1.0, 0.1, 0.004));
+	mainSim1.room.lights.push(new Light(0.75, 2.0, 0.1, 600, true, 0.75, 2.0, 0.1, 2.25, 2.0, 0.1, 0.004));
+
+	mainSim2 = new Sim(1,'mainroom2');
+  mainSim2.room.lights.push(new Light(0.75, 1.0, 0.2, 600, true, 0.75, 1.0, 0.2, 2.25, 1.0, 0.2, 0.004));
+	mainSim2.room.lights.push(new Light(0.75, 2.0, 0.2, 600, true, 0.75, 2.0, 0.2, 2.25, 2.0, 0.2, 0.004));
+
+	mainSim3 = new Sim(2,'mainroom3');
+  mainSim3.room.lights.push(new Light(0.75, 1.0, 0.3, 600, true, 0.75, 1.0, 0.3, 2.25, 1.0, 0.3, 0.004));
+	mainSim3.room.lights.push(new Light(0.75, 2.0, 0.3, 600, true, 0.75, 2.0, 0.3, 2.25, 2.0, 0.3, 0.004));
+
+	mainSim4 = new Sim(3,'mainroom4');
+  mainSim4.room.lights.push(new Light(0.75, 1.0, 0.4, 600, true, 0.75, 1.0, 0.4, 2.25, 1.0, 0.4, 0.004));
+	mainSim4.room.lights.push(new Light(0.75, 2.0, 0.4, 600, true, 0.75, 2.0, 0.4, 2.25, 2.0, 0.4, 0.004));
+
+	mainSim5 = new Sim(4,'mainroom5');
+  mainSim5.room.lights.push(new Light(0.75, 1.0, 0.5, 600, true, 0.75, 1.0, 0.5, 2.25, 1.0, 0.5, 0.004));
+	mainSim5.room.lights.push(new Light(0.75, 2.0, 0.5, 600, true, 0.75, 2.0, 0.5, 2.25, 2.0, 0.5, 0.004));
+  testTimer = setInterval(testDraw, 10);
   
 }
 
-function drawAll()
-{
-	frameCount++;
+function testDraw(){
+	//console.log(frames);
+	mainSim1.room.moveLights();
+	mainSim1.room.calcPowerGrid();
+	mainSim1.panel.views[0].draw(mainSim1.room.powerGrid.getLiveData(frames%1000));
+	mainSim1.panel.views[1].draw(mainSim1.room.powerGrid.getHistoryData());
+	mainSim1.panel.views[2].draw();
 
-	// Top Frame
-	var canvas = document.getElementById("worldCanvas");
-  var ctx = canvas.getContext("2d");
-  for(var x = 0;x<750;x+=10){
-		for(var y = 0;y<750;y+=10){
-			var z = dynamicZ/pixelsPerM;
-			var wperm1 = calcWattsPerM(x, y, z, lightX, lightY, lightPower);
-			var wperm2 = calcWattsPerM(x, y, z, lightX, lightY + 250, lightPower);
-			//var wperm3 = calcWattsPerM(x, y, z, lightX, lightY + 175, 50.0);
+	mainSim2.room.moveLights();
+	mainSim2.room.calcPowerGrid();
+	mainSim2.panel.views[0].draw(mainSim2.room.powerGrid.getLiveData(frames%1000));
+	mainSim2.panel.views[1].draw(mainSim2.room.powerGrid.getHistoryData());
+	mainSim2.panel.views[2].draw();
 
-			var wperm = wperm1 + wperm2;// + wperm3;
-			var historyTime = frameCount%1000;
-			historyArray[x/10][y/10][historyTime] = wperm;
-			
-			ctx.fillStyle = getColorPower(wperm);
-  		ctx.fillRect(x, y, 10, 10);
-  	}
-	}
-	// Middle Frame
-	var canvasHistory = document.getElementById("historyCanvas");
-  var ctxHistory = canvasHistory.getContext("2d");
-	for(var x = 0;x<750;x+=10){
-		for(var y = 0;y<750;y+=10){
-			var totalPowerHistory =0;
-			for(var t = 0;t<1000;t++){
-				totalPowerHistory += historyArray[x/10][y/10][t];
-			}
-			//ctxHistory.fillStyle = getColorPower(totalPowerHistory/(frameCount < 1000 ? frameCount : 1000));
-			ctxHistory.fillStyle = getColorPower(totalPowerHistory/(1000));
-  		ctxHistory.fillRect(x, y, 10, 10);
-  	}
-	}
-	// Bottom Frame
-	if(frameCount == 1){
-		var canvasStatic = document.getElementById("staticCanvas");
-	  var ctxStatic = canvasStatic.getContext("2d");
-	  for(var x = 0;x<750;x+=10){
-			for(var y = 0;y<750;y+=10){
-				var z = staticZ/pixelsPerM;
-				var wperm1 = calcWattsPerM(x, y, z, lightStaticX1, lightStaticY, lightPowerStatic);
-				var wperm2 = calcWattsPerM(x, y, z, lightStaticX2, lightStaticY, lightPowerStatic);
-				var wperm3 = calcWattsPerM(x, y, z, lightStaticX1, lightStaticY + 350, lightPowerStatic);
-				var wperm4 = calcWattsPerM(x, y, z, lightStaticX2, lightStaticY + 350, lightPowerStatic);
-				//var wperm5 = calcWattsPerM(x, y, z, lightStaticX3, lightStaticY, lightPowerStatic);
-				//var wperm6 = calcWattsPerM(x, y, z, lightStaticX3, lightStaticY + 350, lightPowerStatic);
+	mainSim3.room.moveLights();
+	mainSim3.room.calcPowerGrid();
+	mainSim3.panel.views[0].draw(mainSim3.room.powerGrid.getLiveData(frames%1000));
+	mainSim3.panel.views[1].draw(mainSim3.room.powerGrid.getHistoryData());
+	mainSim3.panel.views[2].draw();
 
-				var wperm = wperm1 + wperm2 + wperm3 + wperm4;// + wperm5 + wperm6;
-				ctxStatic.fillStyle = getColorPower(wperm);
-	  		ctxStatic.fillRect(x, y, 10, 10);
-	  	}
-		}
-	}
+	mainSim4.room.moveLights();
+	mainSim4.room.calcPowerGrid();
+	mainSim4.panel.views[0].draw(mainSim4.room.powerGrid.getLiveData(frames%1000));
+	mainSim4.panel.views[1].draw(mainSim4.room.powerGrid.getHistoryData());
+	mainSim4.panel.views[2].draw();
 
+	mainSim5.room.moveLights();
+	mainSim5.room.calcPowerGrid();
+	mainSim5.panel.views[0].draw(mainSim5.room.powerGrid.getLiveData(frames%1000));
+	mainSim5.panel.views[1].draw(mainSim5.room.powerGrid.getHistoryData());
+	mainSim5.panel.views[2].draw();
 
-	if(direction == 'left' && delayCount == 0 ){
-		lightX -= speedX;
-	}
-	if(direction == 'right'&& delayCount == 0){
-		lightX += speedX;
-	}
-	if(delayCount != 0){
-		delayCount --;
-	}
-	if(lightX > lightXMax){
-		direction = 'left';
-		lightX = lightXMax;
-		delayCount = delayTime;
-	}
-	if(lightX < lightXMin){
-		direction = 'right';
-		lightX = lightXMin;
-		delayCount = delayTime;
-	}
-
-	if(delayCountY != 0){
-		delayCountY --;
-	}
-
-	if(wobbleDirection == 'up' && delayCountY == 0){
-		lightY -= speedY;
-	}
-	if(wobbleDirection == 'down' && delayCountY == 0){
-		lightY += speedY;
-	}
-	if(lightY < 150){
-		wobbleDirection = 'down';
-		lightY = 150;
-		delayCountY = delayTimeY;
-	}
-	if(lightY > 350){
-		wobbleDirection = 'up';
-		lightY = 350;
-		delayCountY = delayTimeY;
-	}
-}
-function calcWattsPerM(x, y, zpos, lightX, lightY, lightPower){
-	var xpos = Math.abs(lightX -x)/pixelsPerM;
-	var ypos = Math.abs(lightY -y)/pixelsPerM;
-	var dist = Math.sqrt((xpos*xpos)+(ypos*ypos)+(zpos*zpos));
-	var wperm = lightPower/(4 * Math.PI * dist * dist);
-	return wperm;
+	frames++;
 }
 
-function showInfo(event) {
-    var cX = event.clientX;
-    var cY = event.clientY;
-    var coords1 = "client - X: " + cX + ", Y coords: " + cY;
-    var xpos = Math.abs(lightX -cX)/500;
-		var ypos = cY/500;
-		var dist = Math.sqrt((xpos*xpos)+(ypos*ypos));
-		var wperm = lightPower/(4 * Math.PI * dist * dist);
-		var color = Math.round(wperm.map(0,20000,128,255));
-		coords1 += ': ' + wperm + ': ' + color + ': ' + frameCount;
-    $('#infoText').empty();
-    $('#infoText').append(coords1);
-}
+
 
 function getColorPower(power){
 	var greenLow = 100;
@@ -216,12 +128,23 @@ var Light = function(x, y, z, power, dynamic, startX, startY, startZ, endX, endY
   this.delayX  = delayX  || 0.0;
   this.delayY  = delayY  || 0.0;
   this.delayZ  = delayZ  || 0.0;
+  this.directionX = 'right';
+  this.directionY = 'right';
+  this.directionZ = 'right';
+  this.delayCountX = 0;
+  this.delayCountY = 0;
+  this.delayCountZ = 0;
+  
+
 }
 
 var Sim = function(id, panelID){
 	this.id = id || 0;
 	this.room = new Room(3, 3, 2);
-	this.room.lights.push(new Light(1.5, 1.5, 0.5, 600));
+	//this.room.lights.push(new Light(0.75, 0.75, 0.1, 600, true, 0.75, 0.75, 0.1, 2.25, 0.75, 0.1, 0.01));
+	//this.room.lights.push(new Light(2.25, 2.25, 0.1, 600, true, 2.25, 2.25, 0.1, 0.75, 2.25, 0.1, 0.01));
+	//this.room.lights.push(new Light(1.75, 0.75, 0.1, 600, true, 1.75, 0.75, 0.1, 2.75, 0.75, 0.1, 0.01));
+	//this.room.lights.push(new Light(1.75, 2.25, 0.1, 600, true, 1.75, 2.25, 0.1, 2.75, 2.25, 0.1, 0.01));
 	this.panel = new Panel(panelID);
 }
 
@@ -237,21 +160,30 @@ var View = function(w, h, viewType, visible, id, panelID, txt){
 }
 
 View.prototype = {
-	draw: function(){
+	draw: function(viewData){
 		if(this.viewType == 'live'){
 			var canvas = document.getElementById(this.id);
   		var ctx = canvas.getContext("2d");
-  		ctx.fillStyle = 'rgb(128,128,128)';
-  		ctx.fillRect(100, 100, 10, 10);
+  		for(var x = 0; x < 75; x++){
+  			for(var y = 0; y < 75; y++){
+  				ctx.fillStyle = getColorPower(viewData[x][y]);
+  				ctx.fillRect(x*10, y*10, 10, 10);
+  			}
+  		}
 		}
 		if(this.viewType == 'history'){
 			var canvas = document.getElementById(this.id);
   		var ctx = canvas.getContext("2d");
-  		ctx.fillStyle = 'rgb(128,128,128)';
-  		ctx.fillRect(100, 100, 10, 10);
+  		for(var x = 0; x < 75; x++){
+  			for(var y = 0; y < 75; y++){
+  				ctx.fillStyle = getColorPower(viewData[x][y]);
+  				ctx.fillRect(x*10, y*10, 10, 10);
+  			}
+  		}
 		}
 		if(this.viewType == 'info'){
-
+			$('#'+this.id).empty();
+			$('#'+this.id).append(frames);
 		}
 	},
 	init: function(){
@@ -274,11 +206,11 @@ var Panel = function(panelID){
 	this.panelID = panelID || 'panel1';
 	this.init();
 	this.views = [];
-	var view = new View(750, 750, 'live', true, 'liveCanvas', this.panelID);
+	var view = new View(750, 750, 'live', true, this.panelID+'liveCanvas', this.panelID);
 	this.views.push(view);
-	view = new View(750, 750, 'history', true, 'historyCanvas', this.panelID);
+	view = new View(750, 750, 'history', true, this.panelID+'historyCanvas', this.panelID);
 	this.views.push(view);
-	view = new View(750, 750, 'info', true, 'infoWindow', this.panelID, 'Info text');
+	view = new View(750, 750, 'info', true, this.panelID+'infoWindow', this.panelID, 'Info text');
 	this.views.push(view);
 
 }
@@ -307,17 +239,83 @@ var Room = function(maxX, maxY, maxZ)
   this.maxX = maxX || 3;
   this.maxY = maxY || 3;
   this.maxZ = maxZ || 2;
-  this.powerGrid = new Grid(75, 75, 0.01, this.maxX);
+  this.powerGrid = new Grid(75, 75, 0.0, this.maxX);
   this.lights = [];
 }
 
 Room.prototype = {
+	moveLights: function(){
+		for(var i = 0; i < this.lights.length; i++){
+			if(this.lights[i].dynamic){
+				var sx = this.lights[i].startX;
+				var sy = this.lights[i].startY;
+				var ex = this.lights[i].endX;
+				var ey = this.lights[i].endY;
+				var speed = this.lights[i].speed;
+				var direction = this.lights[i].directionX;
+				var dirVectorX = ex - sx;
+				var dirVectorY = ey - sy;
+				var distance = Math.sqrt((dirVectorX*dirVectorX)+(dirVectorY*dirVectorY));
+				var unitvectorX = dirVectorX / distance;
+				var unitvectorY = dirVectorY / distance;
+				if(direction == 'right'){
+					this.lights[i].x += unitvectorX * speed;
+					this.lights[i].y += unitvectorY * speed;
+				}
+				else{
+					this.lights[i].x -= unitvectorX * speed;
+					this.lights[i].y -= unitvectorY * speed;
+				}
+				if(this.lights[i].x < Math.min(sx,ex)){
+					if(direction == 'right'){
+						this.lights[i].directionX = 'left';
+					}
+					else{
+						this.lights[i].directionX = 'right';
+					}
+					this.lights[i].x = Math.min(sx,ex);
+					
+				}
+				else if(this.lights[i].y < Math.min(sy,ey) ){
+					if(direction == 'right'){
+						this.lights[i].directionX = 'left';
+					}
+					else{
+						this.lights[i].directionX = 'right';
+					}
+					this.lights[i].y = Math.min(sy,ey);
+				}
+				else if(this.lights[i].x > Math.max(ex,sx)){
+					if(direction == 'right'){
+						this.lights[i].directionX = 'left';
+					}
+					else{
+						this.lights[i].directionX = 'right';
+					}
+					this.lights[i].x = Math.max(ex,sx);
+				}
+				else if(this.lights[i].y > Math.max(ey,sy) ){
+					if(direction == 'right'){
+						this.lights[i].directionX = 'left';
+					}
+					else{
+						this.lights[i].directionX = 'right';
+					}
+					this.lights[i].y = Math.max(ey,sy);
+				}
+
+			}
+		}
+	},
 	calcPowerGrid: function(){
 		for(var x = 0; x < this.powerGrid.x; x++){
 			for(var y = 0; y < this.powerGrid.y; y++){
 				var roomX = x * this.powerGrid.gsize; 
 				var roomY = y * this.powerGrid.gsize;
 				var wperm = this.getWperm(roomX, roomY, this.powerGrid.z);
+				var old = this.powerGrid.gridHistory[this.powerGrid.historyIndex][x][y];
+				var diff = (wperm - old) / this.powerGrid.gridHistory.length;
+				this.powerGrid.averages[x][y] += diff;
 				this.powerGrid.gridHistory[this.powerGrid.historyIndex][x][y] = wperm;
 			}
 		}
@@ -330,6 +328,9 @@ Room.prototype = {
 		var wperm = 0;
 		for(var i = 0;i<this.lights.length;i++){
 			wperm += this.lights[i].calcWperm(roomX, roomY, roomZ);
+		}
+		if(wperm <= 0 || wperm > 10000000000000){
+			console.log(wperm);
 		}
 		return wperm;
 	}
@@ -354,5 +355,39 @@ var Grid = function(x, y, z, maxX)
 	  }
 	  this.gridHistory.push(cells);
 	}
+	this.averages = [];
+  for(var xi=0;xi < this.x; xi++){
+  	var yRow = [];
+  	for(var yi=0;yi < this.y; yi++){
+  		yRow.push(0);
+  	}
+  	this.averages.push(yRow);
+  }
 }
+
+Grid.prototype = {
+	getLiveData: function(historyIndex){
+		return this.gridHistory[historyIndex];
+	},
+
+	getHistoryData: function(historyIndex){
+		/*
+		var averageGrid = [];
+		for(var x = 0; x < this.x; x++){
+			var yRow = [];
+			for(var y = 0; y < this.y; y++){
+				var totalPower = 0;
+				for(var h = 0; h < this.gridHistory.length; h++){
+					totalPower += this.gridHistory[h][x][y];
+				}
+				yRow.push(totalPower/this.gridHistory.length);
+			}
+			averageGrid.push(yRow);
+		}
+		return averageGrid;
+		*/
+		return this.averages;
+	}
+}
+
 
